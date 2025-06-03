@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다앤 마켓 - AI 메뉴 추천</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const LunchRecommender = () => {
+            const [currentMenu, setCurrentMenu] = useState(null);
+            const [currentDessert, setCurrentDessert] = useState(null);
+            const [showDessert, setShowDessert] = useState(false);
+            const [isSpinning, setIsSpinning] = useState(false);
+            const [weather, setWeather] = useState('맑음');
+            const [temperature, setTemperature] = useState(22);
+            const [humidity, setHumidity] = useState(60);
+            const [location, setLocation] = useState('강남구');
+            const [favorites, setFavorites] = useState([]);
+            const [todayHistory, setTodayHistory] = useState([]);
+            const [currentTime, setCurrentTime] = useState(new Date());
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setCurrentTime(new Date());
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            const menus = {
+                한식: [
+                    { name: '김치찌개', price: '8,000원', calories: 320, emoji: '🍲', tags: ['매운맛', '국물'] },
+                    { name: '불고기', price: '15,000원', calories: 450, emoji: '🥩', tags: ['고기', '달콤'] },
+                    { name: '비빔밥', price: '9,000원', calories: 380, emoji: '🍚', tags: ['건강', '야채'] },
+                    { name: '된장찌개', price: '7,000원', calories: 280, emoji: '🍜', tags: ['구수함', '국물'] },
+                    { name: '갈비탕', price: '13,000원', calories: 520, emoji: '🍖', tags: ['보양식', '고기'] },
+                    { name: '냉면', price: '9,000원', calories: 350, emoji: '🍜', tags: ['시원함', '여름'] },
+                    { name: '삼겹살', price: '12,000원', calories: 580, emoji: '🥓', tags: ['고기', '구이'] },
+                    { name: '김밥', price: '3,000원', calories: 280, emoji: '🍙', tags: ['간편', '야채'] }
+                ],
+                중식: [
+                    { name: '짜장면', price: '6,000원', calories: 480, emoji: '🍝', tags: ['면', '달콤'] },
+                    { name: '짬뽕', price: '7,000원', calories: 420, emoji: '🍜', tags: ['매운맛', '해물'] },
+                    { name: '탕수육', price: '15,000원', calories: 580, emoji: '🍖', tags: ['바삭함', '달콤'] },
+                    { name: '마파두부', price: '12,000원', calories: 380, emoji: '🌶️', tags: ['매운맛', '두부'] },
+                    { name: '볶음밥', price: '8,000원', calories: 450, emoji: '🍚', tags: ['볶음', '든든함'] },
+                    { name: '군만두', price: '5,000원', calories: 280, emoji: '🥟', tags: ['바삭함', '간식'] },
+                    { name: '깐풍기', price: '16,000원', calories: 520, emoji: '🍗', tags: ['매운맛', '바삭'] }
+                ],
+                일식: [
+                    { name: '초밥', price: '25,000원', calories: 320, emoji: '🍣', tags: ['신선함', '고급'] },
+                    { name: '라멘', price: '9,000원', calories: 480, emoji: '🍜', tags: ['국물', '진한맛'] },
+                    { name: '돈카츠', price: '12,000원', calories: 650, emoji: '🍖', tags: ['바삭함', '두툼함'] },
+                    { name: '우동', price: '8,000원', calories: 380, emoji: '🍜', tags: ['담백함', '국물'] },
+                    { name: '연어덮밥', price: '14,000원', calories: 420, emoji: '🍚', tags: ['신선함', '영양'] },
+                    { name: '규동', price: '10,000원', calories: 520, emoji: '🍚', tags: ['달콤함', '고기'] },
+                    { name: '사시미', price: '20,000원', calories: 180, emoji: '🐟', tags: ['신선함', '회'] }
+                ],
+                양식: [
+                    { name: '파스타', price: '13,000원', calories: 450, emoji: '🍝', tags: ['크림', '면'] },
+                    { name: '피자', price: '18,000원', calories: 680, emoji: '🍕', tags: ['치즈', '바삭함'] },
+                    { name: '스테이크', price: '28,000원', calories: 620, emoji: '🥩', tags: ['고급', '육즙'] },
+                    { name: '햄버거', price: '8,000원', calories: 580, emoji: '🍔', tags: ['간편함', '푸짐함'] },
+                    { name: '리조또', price: '15,000원', calories: 480, emoji: '🍚', tags: ['크림', '고급'] },
+                    { name: '샐러드', price: '12,000원', calories: 250, emoji: '🥗', tags: ['건강', '신선함'] },
+                    { name: '샌드위치', price: '7,000원', calories: 350, emoji: '🥪', tags: ['간편', '든든함'] }
+                ]
+            };
+
+            const desserts = [
+                { name: '아이스크림', price: '3,000원', calories: 180, emoji: '🍦' },
+                { name: '케이크', price: '5,000원', calories: 320, emoji: '🍰' },
+                { name: '과일', price: '4,000원', calories: 80, emoji: '🍎' },
+                { name: '커피', price: '4,500원', calories: 20, emoji: '☕' },
+                { name: '요거트', price: '2,500원', calories: 120, emoji: '🥛' },
+                { name: '초콜릿', price: '2,000원', calories: 250, emoji: '🍫' },
+                { name: '마카롱', price: '3,500원', calories: 95, emoji: '🧁' },
+                { name: '푸딩', price: '3,000원', calories: 150, emoji: '🍮' }
+            ];
+
+            const getWeatherBasedRecommendation = () => {
+                if (temperature > 25) {
+                    return ['냉면', '샐러드', '초밥', '과일'];
+                } else if (temperature < 10) {
+                    return ['김치찌개', '갈비탕', '라멘', '짬뽕'];
+                } else if (weather === '비') {
+                    return ['김치찌개', '파전', '라멘', '짬뽕'];
+                }
+                return null;
+            };
+
+            const getTimeBasedRecommendation = () => {
+                const hour = currentTime.getHours();
+                if (hour < 11) {
+                    return '아직 이른 시간이네요! 조금 더 기다려보세요 😊';
+                } else if (hour > 15) {
+                    return '점심시간이 지났어요! 간단한 간식은 어떠세요? 🍪';
+                }
+                return null;
+            };
+
+            const getDianeRecommendation = (menu) => {
+                const recommendations = [
+                    `${menu.name} 완전 맛있겠다! 다앤이 추천이야! ${menu.emoji}`,
+                    `오늘 ${menu.name} 어때? 날씨랑 딱 맞는 것 같아! 💕`,
+                    `${menu.name}! 이거 먹으면 오후에 힘이 날 거야! ✨`,
+                    `다앤이가 골라준 ${menu.name}! 믿고 먹어봐! 😋`,
+                    `${menu.name} 한 그릇 어떠세요? 영양도 좋고! 🌟`
+                ];
+                return recommendations[Math.floor(Math.random() * recommendations.length)];
+            };
+
+            const getRandomMenu = () => {
+                const timeWarning = getTimeBasedRecommendation();
+                if (timeWarning) {
+                    alert(timeWarning);
+                    return;
+                }
+
+                setIsSpinning(true);
+                setShowDessert(false);
+                
+                setTimeout(() => {
+                    const categories = Object.keys(menus);
+                    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+                    const categoryMenus = menus[randomCategory];
+                    
+                    const weatherRecommended = getWeatherBasedRecommendation();
+                    let selectedMenu;
+                    
+                    if (weatherRecommended) {
+                        const weatherMenus = categoryMenus.filter(menu => 
+                            weatherRecommended.some(rec => menu.name.includes(rec))
+                        );
+                        selectedMenu = weatherMenus.length > 0 
+                            ? weatherMenus[Math.floor(Math.random() * weatherMenus.length)]
+                            : categoryMenus[Math.floor(Math.random() * categoryMenus.length)];
+                    } else {
+                        selectedMenu = categoryMenus[Math.floor(Math.random() * categoryMenus.length)];
+                    }
+                    
+                    setCurrentMenu({...selectedMenu, category: randomCategory});
+                    setTodayHistory(prev => [...prev, selectedMenu.name]);
+                    setIsSpinning(false);
+                }, 1500);
+            };
+
+            const getRandomDessert = () => {
+                const randomDessert = desserts[Math.floor(Math.random() * desserts.length)];
+                setCurrentDessert(randomDessert);
+                setShowDessert(true);
+            };
+
+            const toggleFavorite = (menu) => {
+                setFavorites(prev => {
+                    const exists = prev.find(fav => fav.name === menu.name);
+                    if (exists) {
+                        return prev.filter(fav => fav.name !== menu.name);
+                    } else {
+                        return [...prev, menu];
+                    }
+                });
+            };
+
+            const isFavorite = (menu) => {
+                return favorites.some(fav => fav.name === menu.name);
+            };
+
+            return React.createElement('div', {
+                className: "min-h-screen bg-gradient-to-br from-pink-100 to-purple-100 p-4"
+            }, 
+                React.createElement('div', {
+                    className: "max-w-md mx-auto"
+                },
+                    // 헤더
+                    React.createElement('div', {
+                        className: "text-center mb-6"
+                    },
+                        React.createElement('h1', {
+                            className: "text-3xl font-bold text-purple-800 mb-2"
+                        }, "다앤 마켓 🎀"),
+                        React.createElement('p', {
+                            className: "text-purple-600"
+                        }, "AI가 추천하는 오늘의 메뉴")
+                    ),
+
+                    // 현재 정보
+                    React.createElement('div', {
+                        className: "bg-white rounded-2xl p-4 mb-6 shadow-lg"
+                    },
+                        React.createElement('div', {
+                            className: "grid grid-cols-2 gap-4 text-sm"
+                        },
+                            React.createElement('div', {
+                                className: "flex items-center gap-2"
+                            },
+                                React.createElement('span', null, "🕐"),
+                                React.createElement('span', null, 
+                                    currentTime.toLocaleTimeString('ko-KR', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                    })
+                                )
+                            ),
+                            React.createElement('div', {
+                                className: "flex items-center gap-2"
+                            },
+                                React.createElement('span', null, "📍"),
+                                React.createElement('select', {
+                                    value: location,
+                                    onChange: (e) => setLocation(e.target.value),
+                                    className: "text-sm border-none bg-transparent focus:outline-none"
+                                },
+                                    React.createElement('optgroup', { label: "서울특별시" },
+                                        React.createElement('option', { value: "강남구" }, "강남구"),
+                                        React.createElement('option', { value: "강동구" }, "강동구"),
+                                        React.createElement('option', { value: "강북구" }, "강북구"),
+                                        React.createElement('option', { value: "강서구" }, "강서구"),
+                                        React.createElement('option', { value: "관악구" }, "관악구"),
+                                        React.createElement('option', { value: "광진구" }, "광진구"),
+                                        React.createElement('option', { value: "구로구" }, "구로구"),
+                                        React.createElement('option', { value: "금천구" }, "금천구"),
+                                        React.createElement('option', { value: "노원구" }, "노원구"),
+                                        React.createElement('option', { value: "도봉구" }, "도봉구"),
+                                        React.createElement('option', { value: "동대문구" }, "동대문구"),
+                                        React.createElement('option', { value: "동작구" }, "동작구"),
+                                        React.createElement('option', { value: "마포구" }, "마포구"),
+                                        React.createElement('option', { value: "서대문구" }, "서대문구"),
+                                        React.createElement('option', { value: "서초구" }, "서초구"),
+                                        React.createElement('option', { value: "성동구" }, "성동구"),
+                                        React.createElement('option', { value: "성북구" }, "성북구"),
+                                        React.createElement('option', { value: "송파구" }, "송파구"),
+                                        React.createElement('option', { value: "양천구" }, "양천구"),
+                                        React.createElement('option', { value: "영등포구" }, "영등포구"),
+                                        React.createElement('option', { value: "용산구" }, "용산구"),
+                                        React.createElement('option', { value: "은평구" }, "은평구"),
+                                        React.createElement('option', { value: "종로구" }, "종로구"),
+                                        React.createElement('option', { value: "중구" }, "중구"),
+                                        React.createElement('option', { value: "중랑구" }, "중랑구")
+                                    ),
+                                    React.createElement('optgroup', { label: "경기도" },
+                                        React.createElement('option', { value: "수원시" }, "수원시"),
+                                        React.createElement('option', { value: "성남시" }, "성남시"),
+                                        React.createElement('option', { value: "고양시" }, "고양시"),
+                                        React.createElement('option', { value: "용인시" }, "용인시"),
+                                        React.createElement('option', { value: "부천시" }, "부천시"),
+                                        React.createElement('option', { value: "안산시" }, "안산시"),
+                                        React.createElement('option', { value: "안양시" }, "안양시"),
+                                        React.createElement('option', { value: "남양주시" }, "남양주시"),
+                                        React.createElement('option', { value: "화성시" }, "화성시"),
+                                        React.createElement('option', { value: "평택시" }, "평택시"),
+                                        React.createElement('option', { value: "의정부시" }, "의정부시"),
+                                        React.createElement('option', { value: "시흥시" }, "시흥시"),
+                                        React.createElement('option', { value: "파주시" }, "파주시"),
+                                        React.createElement('option', { value: "김포시" }, "김포시"),
+                                        React.createElement('option', { value: "광명시" }, "광명시"),
+                                        React.createElement('option', { value: "광주시" }, "광주시 (경기)"),
+                                        React.createElement('option', { value: "군포시" }, "군포시"),
+                                        React.createElement('option', { value: "하남시" }, "하남시"),
+                                        React.createElement('option', { value: "오산시" }, "오산시"),
+                                        React.createElement('option', { value: "이천시" }, "이천시"),
+                                        React.createElement('option', { value: "안성시" }, "안성시"),
+                                        React.createElement('option', { value: "구리시" }, "구리시"),
+                                        React.createElement('option', { value: "포천시" }, "포천시"),
+                                        React.createElement('option', { value: "양주시" }, "양주시"),
+                                        React.createElement('option', { value: "동두천시" }, "동두천시"),
+                                        React.createElement('option', { value: "과천시" }, "과천시")
+                                    ),
+                                    React.createElement('optgroup', { label: "부산광역시" },
+                                        React.createElement('option', { value: "중구" }, "중구 (부산)"),
+                                        React.createElement('option', { value: "서구" }, "서구 (부산)"),
+                                        React.createElement('option', { value: "동구" }, "동구 (부산)"),
+                                        React.createElement('option', { value: "영도구" }, "영도구"),
+                                        React.createElement('option', { value: "부산진구" }, "부산진구"),
+                                        React.createElement('option', { value: "동래구" }, "동래구"),
+                                        React.createElement('option', { value: "남구" }, "남구 (부산)"),
+                                        React.createElement('option', { value: "북구" }, "북구 (부산)"),
+                                        React.createElement('option', { value: "해운대구" }, "해운대구"),
+                                        React.createElement('option', { value: "사하구" }, "사하구"),
+                                        React.createElement('option', { value: "금정구" }, "금정구"),
+                                        React.createElement('option', { value: "강서구" }, "강서구 (부산)"),
+                                        React.createElement('option', { value: "연제구" }, "연제구"),
+                                        React.createElement('option', { value: "수영구" }, "수영구"),
+                                        React.createElement('option', { value: "사상구" }, "사상구"),
+                                        React.createElement('option', { value: "기장군" }, "기장군")
+                                    ),
+                                    React.createElement('optgroup', { label: "대구광역시" },
+                                        React.createElement('option', { value: "중구" }, "중구 (대구)"),
+                                        React.createElement('option', { value: "동구" }, "동구 (대구)"),
+                                        React.createElement('option', { value: "서구" }, "서구 (대구)"),
+                                        React.createElement('option', { value: "남구" }, "남구 (대구)"),
+                                        React.createElement('option', { value: "북구" }, "북구 (대구)"),
+                                        React.createElement('option', { value: "수성구" }, "수성구"),
+                                        React.createElement('option', { value: "달서구" }, "달서구"),
+                                        React.createElement('option', { value: "달성군" }, "달성군"),
+                                        React.createElement('option', { value: "군위군" }, "군위군")
+                                    ),
+                                    React.createElement('optgroup', { label: "울산광역시" },
+                                        React.createElement('option', { value: "중구" }, "중구 (울산)"),
+                                        React.createElement('option', { value: "남구" }, "남구 (울산)"),
+                                        React.createElement('option', { value: "동구" }, "동구 (울산)"),
+                                        React.createElement('option', { value: "북구" }, "북구 (울산)"),
+                                        React.createElement('option', { value: "울주군" }, "울주군")
+                                    ),
+                                    React.createElement('optgroup', { label: "제주특별자치도" },
+                                        React.createElement('option', { value: "제주시" }, "제주시"),
+                                        React.createElement('option', { value: "서귀포시" }, "서귀포시")
+                                    )
+                                )
+                            ),
+                            React.createElement('div', {
+                                className: "flex items-center gap-2"
+                            },
+                                React.createElement('span', null, "🌡️"),
+                                React.createElement('input', {
+                                    type: "number",
+                                    value: temperature,
+                                    onChange: (e) => setTemperature(Number(e.target.value)),
+                                    className: "w-12 text-sm border-none bg-transparent focus:outline-none"
+                                }),
+                                React.createElement('span', null, "°C")
+                            ),
+                            React.createElement('div', {
+                                className: "flex items-center gap-2"
+                            },
+                                React.createElement('select', {
+                                    value: weather,
+                                    onChange: (e) => setWeather(e.target.value),
+                                    className: "text-sm border-none bg-transparent focus:outline-none"
+                                },
+                                    React.createElement('option', { value: "맑음" }, "☀️ 맑음"),
+                                    React.createElement('option', { value: "흐림" }, "☁️ 흐림"),
+                                    React.createElement('option', { value: "비" }, "🌧️ 비"),
+                                    React.createElement('option', { value: "눈" }, "❄️ 눈")
+                                )
+                            )
+                        )
+                    ),
+
+                    // 메인 추천 버튼
+                    React.createElement('div', {
+                        className: "text-center mb-6"
+                    },
+                        React.createElement('button', {
+                            onClick: getRandomMenu,
+                            disabled: isSpinning,
+                            className: `bg-gradient-to-r from-pink-400 to-purple-500 text-white text-xl font-bold py-4 px-8 rounded-full shadow-lg transform transition-all duration-300 ${
+                                isSpinning ? 'scale-95 animate-spin' : 'hover:scale-105 hover:shadow-xl'
+                            }`
+                        },
+                            isSpinning 
+                                ? "🔄 다앤이가 고르는 중..." 
+                                : "✨ 오늘 뭐 먹지?"
+                        )
+                    ),
+
+                    // 추천 결과
+                    currentMenu && React.createElement('div', {
+                        className: "bg-white rounded-2xl p-6 mb-6 shadow-lg"
+                    },
+                        React.createElement('div', {
+                            className: "text-center mb-4"
+                        },
+                            React.createElement('div', {
+                                className: "text-6xl mb-2"
+                            }, currentMenu.emoji),
+                            React.createElement('h2', {
+                                className: "text-2xl font-bold text-gray-800 mb-1"
+                            }, currentMenu.name),
+                            React.createElement('p', {
+                                className: "text-purple-600 font-medium"
+                            }, `${currentMenu.category} • ${currentMenu.price}`),
+                            React.createElement('p', {
+                                className: "text-sm text-gray-500"
+                            }, `${currentMenu.calories}kcal`)
+                        ),
+                        
+                        React.createElement('div', {
+                            className: "flex flex-wrap gap-2 justify-center mb-4"
+                        },
+                            currentMenu.tags.map((tag, index) =>
+                                React.createElement('span', {
+                                    key: index,
+                                    className: "bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm"
+                                }, `#${tag}`)
+                            )
+                        ),
+
+                        React.createElement('div', {
+                            className: "bg-pink-50 p-4 rounded-xl mb-4"
+                        },
+                            React.createElement('p', {
+                                className: "text-pink-700 text-center font-medium"
+                            }, `💕 ${getDianeRecommendation(currentMenu)}`)
+                        ),
+
+                        React.createElement('div', {
+                            className: "flex gap-2"
+                        },
+                            React.createElement('button', {
+                                onClick: () => toggleFavorite(currentMenu),
+                                className: `flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                                    isFavorite(currentMenu)
+                                        ? 'bg-red-100 text-red-600'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`
+                            }, `❤️ ${isFavorite(currentMenu) ? '좋아요!' : '좋아요'}`),
+                            React.createElement('button', {
+                                onClick: getRandomDessert,
+                                className: "flex-1 bg-yellow-100 text-yellow-600 py-2 px-4 rounded-lg font-medium hover:bg-yellow-200 transition-colors"
+                            }, "🍰 후식도!")
+                        )
+                    ),
+
+                    // 후식 추천
+                    showDessert && currentDessert && React.createElement('div', {
+                        className: "bg-white rounded-2xl p-6 mb-6 shadow-lg"
+                    },
+                        React.createElement('div', {
+                            className: "text-center"
+                        },
+                            React.createElement('div', {
+                                className: "text-4xl mb-2"
+                            }, currentDessert.emoji),
+                            React.createElement('h3', {
+                                className: "text-xl font-bold text-gray-800 mb-1"
+                            }, `후식: ${currentDessert.name}`),
+                            React.createElement('p', {
+                                className: "text-purple-600"
+                            }, `${currentDessert.price} • ${currentDessert.calories}kcal`)
+                        )
+                    ),
+
+                    // 즐겨찾기
+                    favorites.length > 0 && React.createElement('div', {
+                        className: "bg-white rounded-2xl p-4 mb-6 shadow-lg"
+                    },
+                        React.createElement('h3', {
+                            className: "font-bold text-gray-800 mb-3 flex items-center gap-2"
+                        },
+                            React.createElement('span', null, "❤️"),
+                            "내가 좋아하는 메뉴"
+                        ),
+                        React.createElement('div', {
+                            className: "grid grid-cols-2 gap-2"
+                        },
+                            favorites.slice(0, 4).map((fav, index) =>
+                                React.createElement('div', {
+                                    key: index,
+                                    className: "bg-gray-50 p-2 rounded-lg text-center"
+                                },
+                                    React.createElement('div', {
+                                        className: "text-2xl"
+                                    }, fav.emoji),
+                                    React.createElement('div', {
+                                        className: "text-sm font-medium text-gray-700"
+                                    }, fav.name)
+                                )
+                            )
+                        )
+                    ),
+
+                    // 오늘의 기록
+                    todayHistory.length > 0 && React.createElement('div', {
+                        className: "bg-white rounded-2xl p-4 shadow-lg"
+                    },
+                        React.createElement('h3', {
+                            className: "font-bold text-gray-800 mb-3"
+                        }, "🗓️ 오늘의 추천 기록"),
+                        React.createElement('div', {
+                            className: "flex flex-wrap gap-2"
+                        },
+                            [...new Set(todayHistory)].slice(0, 5).map((menu, index) =>
+                                React.createElement('span', {
+                                    key: index,
+                                    className: "bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm"
+                                }, menu)
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        ReactDOM.render(React.createElement(LunchRecommender), document.getElementById('root'));
+    </script>
+</body>
+</html>
